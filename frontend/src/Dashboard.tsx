@@ -24,10 +24,24 @@ export const Dashboard: React.FC = () => {
   const [summary, setSummary] = useState<Summary | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const [filterYear, setFilterYear] = useState<string>('');
-  const [filterMonth, setFilterMonth] = useState<string>('');
+  const [startMonth, setStartMonth] = useState<string>('');
+  const [endMonth, setEndMonth] = useState<string>('');
 
   const [editTx, setEditTx] = useState<Transaction | null>(null);
+
+  const getQueryParams = () => {
+    const queryParams = new URLSearchParams();
+    if (startMonth) {
+      queryParams.append('start_date', `${startMonth}-01`);
+    }
+    if (endMonth) {
+      const [year, month] = endMonth.split('-');
+      // Get the last day of the month
+      const lastDay = new Date(parseInt(year), parseInt(month), 0).getDate();
+      queryParams.append('end_date', `${endMonth}-${lastDay}`);
+    }
+    return queryParams.toString();
+  };
   const [editFormData, setEditFormData] = useState<Partial<Transaction>>({});
 
   useEffect(() => {
@@ -36,15 +50,13 @@ export const Dashboard: React.FC = () => {
       try {
         const token = localStorage.getItem('token');
         
-        const queryParams = new URLSearchParams();
-        if (filterYear) queryParams.append('year', filterYear);
-        if (filterMonth) queryParams.append('month', filterMonth);
+        const queryString = getQueryParams();
 
         const [txRes, summaryRes] = await Promise.all([
-          fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/transactions/?${queryParams.toString()}`, {
+          fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/transactions/?${queryString}`, {
             headers: { 'Authorization': `Bearer ${token}` }
           }),
-          fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/transactions/summary`, {
+          fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/transactions/summary?${queryString}`, {
             headers: { 'Authorization': `Bearer ${token}` }
           })
         ]);
@@ -61,7 +73,7 @@ export const Dashboard: React.FC = () => {
     };
     
     fetchData();
-  }, [filterYear, filterMonth]);
+  }, [startMonth, endMonth]);
 
   // Expose fetchData for manual refresh
   const handleRefresh = () => {
@@ -70,15 +82,13 @@ export const Dashboard: React.FC = () => {
       try {
         const token = localStorage.getItem('token');
         
-        const queryParams = new URLSearchParams();
-        if (filterYear) queryParams.append('year', filterYear);
-        if (filterMonth) queryParams.append('month', filterMonth);
+        const queryString = getQueryParams();
 
         const [txRes, summaryRes] = await Promise.all([
-          fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/transactions/?${queryParams.toString()}`, {
+          fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/transactions/?${queryString}`, {
             headers: { 'Authorization': `Bearer ${token}` }
           }),
-          fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/transactions/summary`, {
+          fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/transactions/summary?${queryString}`, {
             headers: { 'Authorization': `Bearer ${token}` }
           })
         ]);
@@ -99,7 +109,8 @@ export const Dashboard: React.FC = () => {
   const handleExport = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/transactions/export`, {
+      const queryString = getQueryParams();
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/transactions/export?${queryString}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       
@@ -231,28 +242,30 @@ export const Dashboard: React.FC = () => {
               <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
               入账记录 Transactions
             </h2>
-            <div className="flex gap-2">
-              <select 
-                value={filterYear} 
-                onChange={e => setFilterYear(e.target.value)}
+            <div className="flex items-center gap-2">
+              <input 
+                type="month"
+                value={startMonth} 
+                onChange={e => setStartMonth(e.target.value)}
                 className="text-xs border border-slate-200 rounded px-2 py-1 focus:outline-none focus:border-green-500"
-              >
-                <option value="">所有年份 All Years</option>
-                <option value="2023">2023</option>
-                <option value="2024">2024</option>
-                <option value="2025">2025</option>
-                <option value="2026">2026</option>
-              </select>
-              <select 
-                value={filterMonth} 
-                onChange={e => setFilterMonth(e.target.value)}
+                placeholder="开始月份"
+              />
+              <span className="text-xs text-slate-500">至</span>
+              <input 
+                type="month"
+                value={endMonth} 
+                onChange={e => setEndMonth(e.target.value)}
                 className="text-xs border border-slate-200 rounded px-2 py-1 focus:outline-none focus:border-green-500"
-              >
-                <option value="">所有月份 All Months</option>
-                {Array.from({length: 12}, (_, i) => i + 1).map(m => (
-                  <option key={m} value={m}>{m}月</option>
-                ))}
-              </select>
+                placeholder="结束月份"
+              />
+              {(startMonth || endMonth) && (
+                <button 
+                  onClick={() => { setStartMonth(''); setEndMonth(''); }}
+                  className="text-xs text-slate-400 hover:text-slate-600"
+                >
+                  清除
+                </button>
+              )}
             </div>
           </div>
           

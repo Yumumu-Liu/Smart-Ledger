@@ -102,7 +102,7 @@ function App() {
     // 如果是 PDF 文件，需要在 object url 中保留 type 信息以便 iframe 正确识别
     const objectUrl = URL.createObjectURL(file)
     if (file.type === 'application/pdf') {
-      setPreviewUrl(`${objectUrl}#pdf`)
+      setPreviewUrl(`${objectUrl}#toolbar=0&navpanes=0&pdf`)
     } else {
       setPreviewUrl(objectUrl)
     }

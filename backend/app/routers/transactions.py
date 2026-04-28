@@ -64,8 +64,8 @@ def get_transactions(
     skip: int = 0, limit: int = 100, 
     currency: Optional[str] = None,
     category: Optional[str] = None,
-    year: Optional[int] = None,
-    month: Optional[int] = None,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
     query = db.query(Transaction)
@@ -73,10 +73,10 @@ def get_transactions(
         query = query.filter(Transaction.currency == currency)
     if category:
         query = query.filter(Transaction.category == category)
-    if year:
-        query = query.filter(func.strftime('%Y', Transaction.transaction_date) == str(year))
-    if month:
-        query = query.filter(func.strftime('%m', Transaction.transaction_date) == f"{month:02d}")
+    if start_date:
+        query = query.filter(Transaction.transaction_date >= datetime.strptime(start_date, "%Y-%m-%d").date())
+    if end_date:
+        query = query.filter(Transaction.transaction_date <= datetime.strptime(end_date, "%Y-%m-%d").date())
         
     return query.order_by(Transaction.created_at.desc()).offset(skip).limit(limit).all()
 
@@ -109,21 +109,48 @@ def delete_transaction(tx_id: int, db: Session = Depends(get_db)):
     return {"status": "success", "message": "Transaction deleted"}
 
 @router.get("/summary")
-def get_summary(db: Session = Depends(get_db)):
-    # Total by currency
-    currency_totals = db.query(
+def get_summary(
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    query = db.query(Transaction)
+    if start_date:
+        query = query.filter(Transaction.transaction_date >= datetime.strptime(start_date, "%Y-%m-%d").date())
+    if end_date:
+        query = query.filter(Transaction.transaction_date <= datetime.strptime(end_date, "%Y-%m-%d").date())
+        
+    # Apply the same filters to the aggregation queries
+    
+    currency_query = db.query(
         Transaction.currency, 
         func.sum(Transaction.amount).label("total")
-    ).group_by(Transaction.currency).all()
-    
-    # Total by category
-    category_totals = db.query(
+    )
+    category_query = db.query(
         Transaction.category, 
         func.sum(Transaction.amount).label("total")
-    ).group_by(Transaction.category).all()
+    )
+    count_query = db.query(func.count(Transaction.id))
+    
+    if start_date:
+        start = datetime.strptime(start_date, "%Y-%m-%d").date()
+        currency_query = currency_query.filter(Transaction.transaction_date >= start)
+        category_query = category_query.filter(Transaction.transaction_date >= start)
+        count_query = count_query.filter(Transaction.transaction_date >= start)
+    if end_date:
+        end = datetime.strptime(end_date, "%Y-%m-%d").date()
+        currency_query = currency_query.filter(Transaction.transaction_date <= end)
+        category_query = category_query.filter(Transaction.transaction_date <= end)
+        count_query = count_query.filter(Transaction.transaction_date <= end)
+
+    # Total by currency
+    currency_totals = currency_query.group_by(Transaction.currency).all()
+    
+    # Total by category
+    category_totals = category_query.group_by(Transaction.category).all()
     
     # Total counts
-    total_count = db.query(func.count(Transaction.id)).scalar()
+    total_count = count_query.scalar()
 
     return {
         "currency_totals": [{"currency": c[0], "total": c[1]} for c in currency_totals if c[0]],
@@ -132,8 +159,18 @@ def get_summary(db: Session = Depends(get_db)):
     }
 
 @router.get("/export")
-def export_transactions(db: Session = Depends(get_db)):
-    transactions = db.query(Transaction).order_by(Transaction.created_at.desc()).all()
+def export_transactions(
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    query = db.query(Transaction)
+    if start_date:
+        query = query.filter(Transaction.transaction_date >= datetime.strptime(start_date, "%Y-%m-%d").date())
+    if end_date:
+        query = query.filter(Transaction.transaction_date <= datetime.strptime(end_date, "%Y-%m-%d").date())
+        
+    transactions = query.order_by(Transaction.created_at.desc()).all()
     
     if not transactions:
         raise HTTPException(status_code=404, detail="No transactions to export")
