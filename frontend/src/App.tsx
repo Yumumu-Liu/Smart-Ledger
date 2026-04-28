@@ -41,12 +41,6 @@ function App() {
   // 当前标签页
   const [currentTab, setCurrentTab] = useState<'upload' | 'dashboard'>('upload')
 
-  useEffect(() => {
-    if (isAuth) {
-      fetchAiCredits();
-    }
-  }, [isAuth]);
-
   const fetchAiCredits = async () => {
     try {
       const token = localStorage.getItem('token');
@@ -65,6 +59,13 @@ function App() {
       console.error("Failed to fetch AI credits", err);
     }
   };
+
+  useEffect(() => {
+    if (isAuth) {
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      fetchAiCredits();
+    }
+  }, [isAuth]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
