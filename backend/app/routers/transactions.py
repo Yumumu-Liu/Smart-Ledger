@@ -182,6 +182,7 @@ def export_transactions(
                 "Date": tx.transaction_date,
                 "Merchant": tx.merchant,
                 "Category": tx.category,
+                "Description": tx.description,
                 "Amount": tx.amount,
                 "Currency": tx.currency,
                 "Status": tx.status,

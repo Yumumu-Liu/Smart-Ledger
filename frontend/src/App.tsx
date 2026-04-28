@@ -8,6 +8,7 @@ interface FormData {
   amount: string;
   currency: string;
   category: string;
+  description: string;
   uploaded_by: string;
 }
 
@@ -33,6 +34,7 @@ function App() {
     amount: '',
     currency: 'SGD',
     category: '',
+    description: '',
     uploaded_by: ''
   })
   
@@ -181,7 +183,9 @@ function App() {
   
   // Removed unused renderHeader function
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const [otherCategory, setOtherCategory] = useState<string>('')
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
     setFormData(prev => ({
       ...prev,
@@ -205,6 +209,10 @@ function App() {
     
     try {
       const token = localStorage.getItem('token');
+      const finalCategory = formData.category === 'other' && otherCategory.trim() !== '' 
+        ? otherCategory.trim() 
+        : formData.category;
+
       const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/transactions/`, {
         method: 'POST',
         headers: {
@@ -213,6 +221,7 @@ function App() {
         },
         body: JSON.stringify({
           ...formData,
+          category: finalCategory,
           transaction_date: formData.transaction_date || null,
           amount: formData.amount ? parseFloat(formData.amount) : null,
           file_path: fileInfo.file_path,
@@ -242,8 +251,10 @@ function App() {
         amount: '',
         currency: 'SGD',
         category: '',
+        description: '',
         uploaded_by: prev.uploaded_by // 保留上传者姓名以便连续上传
       }));
+      setOtherCategory('');
       
     } catch (err) {
       console.error(err);
@@ -545,8 +556,33 @@ function App() {
                     <option value="office">办公用品 Office Supplies</option>
                     <option value="software">软件订阅 Software & Subscriptions</option>
                     <option value="travel">差旅 Travel</option>
+                    <option value="decoration">装修 Decoration</option>
+                    <option value="materials">物料 Materials</option>
                     <option value="other">其他 Other</option>
                   </select>
+                  {formData.category === 'other' && (
+                    <div className="mt-3">
+                      <input 
+                        type="text"
+                        placeholder="请输入自定义分类 Please enter custom category"
+                        value={otherCategory}
+                        onChange={(e) => setOtherCategory(e.target.value)}
+                        className="w-full bg-white border border-green-300 text-slate-800 p-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 transition-all shadow-sm"
+                      />
+                    </div>
+                  )}
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1.5">描述 Description</label>
+                  <textarea 
+                    name="description"
+                    value={formData.description}
+                    onChange={handleInputChange}
+                    rows={2}
+                    placeholder="可填写额外备注信息 Optional notes"
+                    className="w-full bg-slate-50 border border-slate-200 text-slate-800 p-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all resize-none"
+                  />
                 </div>
 
                 <div className="md:col-span-2 mt-4 pt-6 border-t border-slate-100 flex gap-4">

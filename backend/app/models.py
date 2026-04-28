@@ -16,6 +16,7 @@ class Transaction(Base):
     
     merchant = Column(String, index=True, nullable=True)
     category = Column(String, index=True, nullable=True)
+    description = Column(String, nullable=True)
     
     status = Column(String, default="pending")  # 'pending', 'verified'
     

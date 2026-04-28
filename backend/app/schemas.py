@@ -8,6 +8,7 @@ class TransactionBase(BaseModel):
     currency: Optional[str] = None
     merchant: Optional[str] = None
     category: Optional[str] = None
+    description: Optional[str] = None
     status: str = "pending"
     uploaded_by: Optional[str] = None
     last_modified_by: Optional[str] = None

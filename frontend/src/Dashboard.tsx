@@ -7,6 +7,7 @@ interface Transaction {
   amount: number;
   currency: string;
   category: string;
+  description?: string;
   status: string;
   uploaded_by?: string;
   last_modified_by?: string;
@@ -298,6 +299,7 @@ export const Dashboard: React.FC = () => {
                 <th className="p-4 font-semibold">日期 Date</th>
                 <th className="p-4 font-semibold">商户 Merchant</th>
                 <th className="p-4 font-semibold">分类 Category</th>
+                <th className="p-4 font-semibold">描述 Description</th>
                 <th className="p-4 font-semibold text-right">金额 Amount</th>
                 <th className="p-4 font-semibold">上传与修改 Users</th>
                 <th className="p-4 font-semibold">凭证 Voucher</th>
@@ -313,6 +315,9 @@ export const Dashboard: React.FC = () => {
                     <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-600">
                       {tx.category || '未分类'}
                     </span>
+                  </td>
+                  <td className="p-4 text-slate-500 truncate max-w-[150px]" title={tx.description || ''}>
+                    {tx.description || '-'}
                   </td>
                   <td className="p-4 text-right font-bold text-slate-800">
                     {tx.amount ? `${tx.amount.toFixed(2)} ${tx.currency}` : '-'}
@@ -399,17 +404,29 @@ export const Dashboard: React.FC = () => {
                   <label className="text-xs font-semibold text-slate-500 block mb-1">分类 Category</label>
                   <select name="category" value={editFormData.category || ''} onChange={handleEditChange} className="w-full border rounded p-2 text-sm">
                     <option value="">请选择...</option>
-                    <option value="meals">餐饮 Meals</option>
-                    <option value="transport">交通 Transport</option>
-                    <option value="office">办公 Office</option>
-                    <option value="software">软件 Software</option>
+                    <option value="meals">餐饮 Meals & Entertainment</option>
+                    <option value="transport">交通 Transportation</option>
+                    <option value="office">办公用品 Office Supplies</option>
+                    <option value="software">软件订阅 Software & Subscriptions</option>
                     <option value="travel">差旅 Travel</option>
+                    <option value="decoration">装修 Decoration</option>
+                    <option value="materials">物料 Materials</option>
                     <option value="other">其他 Other</option>
                   </select>
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-slate-500 block mb-1">修改人 Modified By</label>
                   <input type="text" name="last_modified_by" value={editFormData.last_modified_by || editFormData.uploaded_by || ''} onChange={handleEditChange} placeholder="您的名字 Name" className="w-full border rounded p-2 text-sm" />
+                </div>
+                <div className="col-span-2">
+                  <label className="text-xs font-semibold text-slate-500 block mb-1">描述 Description</label>
+                  <textarea 
+                    name="description"
+                    value={editFormData.description || ''}
+                    onChange={e => setEditFormData(prev => ({...prev, description: e.target.value}))}
+                    rows={2}
+                    className="w-full border rounded p-2 text-sm resize-none"
+                  />
                 </div>
               </div>
             </div>
