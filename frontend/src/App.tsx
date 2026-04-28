@@ -133,7 +133,7 @@ function App() {
               throw new Error('登录已过期，请重新登录');
             }
             
-            const data = await response.json()
+      const data = await response.json()
       
       if (!response.ok) {
         throw new Error(data.detail || '上传失败')
