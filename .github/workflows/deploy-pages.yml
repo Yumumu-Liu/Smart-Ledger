@@ -38,7 +38,7 @@ jobs:
         run: npm run build
         env:
           # If your backend is hosted somewhere else, you can set VITE_API_URL here.
-          VITE_API_URL: ''
+          VITE_API_URL: 'https://smart-ledger-api.onrender.com'
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
