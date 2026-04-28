@@ -54,8 +54,7 @@ def perform_ocr_with_gemini(file_path: str, mime_type: str) -> dict:
 
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key or api_key == "your_gemini_api_key_here":
-        print("Warning: GEMINI_API_KEY not found or invalid in environment variables.")
-        return {}
+        raise ValueError("Warning: GEMINI_API_KEY not found or invalid in environment variables. Please check Render environment variables.")
         
     try:
         # 1. 初始化客户端
@@ -105,13 +104,13 @@ def perform_ocr_with_gemini(file_path: str, mime_type: str) -> dict:
             # 记录使用次数
             current_usage += 1
             return parsed_data
-        except json.JSONDecodeError:
-            print("Failed to parse AI response as JSON")
-            return {}
+        except json.JSONDecodeError as e:
+            print(f"Failed to parse AI response as JSON: {result_text}")
+            raise ValueError(f"Failed to parse AI response: {str(e)}")
             
     except Exception as e:
         print(f"OCR Inference failed: {str(e)}")
-        return {}
+        raise ValueError(f"OCR Inference failed: {str(e)}")
 
 @router.get("/ai_credits")
 def get_ai_credits(current_user: str = Depends(get_current_user)):
