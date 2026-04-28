@@ -1,0 +1,19 @@
+@import "tailwindcss";
+
+:root {
+  /* Green & White theme variables */
+  --bg-color: #f8fafc;
+  --panel-bg: #ffffff;
+  --text-primary: #1e293b;
+  --text-secondary: #64748b;
+  --accent-color: #16a34a; /* Green 600 */
+  --border-color: #e2e8f0;
+  --positive-color: #16a34a; 
+  --negative-color: #ef4444; 
+}
+
+body {
+  background-color: var(--bg-color);
+  color: var(--text-primary);
+  font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+}
