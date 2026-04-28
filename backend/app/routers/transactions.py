@@ -35,6 +35,7 @@ def create_transaction(transaction: TransactionCreate, db: Session = Depends(get
         currency=transaction.currency,
         merchant=transaction.merchant,
         category=transaction.category,
+        description=transaction.description,
         status="verified",
         uploaded_by=transaction.uploaded_by,
         last_modified_by=transaction.uploaded_by
@@ -91,6 +92,7 @@ def update_transaction(tx_id: int, transaction: TransactionCreate, db: Session =
     db_tx.currency = transaction.currency
     db_tx.merchant = transaction.merchant
     db_tx.category = transaction.category
+    db_tx.description = transaction.description
     db_tx.uploaded_by = transaction.uploaded_by
     db_tx.last_modified_by = transaction.last_modified_by
     
