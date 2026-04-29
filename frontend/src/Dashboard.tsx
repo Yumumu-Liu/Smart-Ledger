@@ -27,6 +27,7 @@ export const Dashboard: React.FC = () => {
 
   const [startMonth, setStartMonth] = useState<string>('');
   const [endMonth, setEndMonth] = useState<string>('');
+  const [selectedCurrencies, setSelectedCurrencies] = useState<string[]>([]);
 
   const [editTx, setEditTx] = useState<Transaction | null>(null);
 
@@ -208,6 +209,18 @@ export const Dashboard: React.FC = () => {
     }));
   };
 
+  const handleCurrencyClick = (currency: string) => {
+    setSelectedCurrencies(prev => 
+      prev.includes(currency) 
+        ? prev.filter(c => c !== currency) 
+        : [...prev, currency]
+    );
+  };
+
+  const filteredTransactions = selectedCurrencies.length > 0 
+    ? transactions.filter(tx => selectedCurrencies.includes(tx.currency))
+    : transactions;
+
   if (loading && !transactions.length) {
     return <div className="p-6 text-center text-slate-500">Loading dashboard...</div>;
   }
@@ -222,14 +235,32 @@ export const Dashboard: React.FC = () => {
         </div>
         
         <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 md:col-span-2">
-          <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-4">币种汇总 Currency Totals</h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider">币种汇总 Currency Totals</h3>
+            {selectedCurrencies.length > 0 && (
+              <span className="text-xs text-green-600 bg-green-50 px-2 py-1 rounded-full font-medium">
+                已筛选 Filtered: {selectedCurrencies.join(', ')}
+              </span>
+            )}
+          </div>
           <div className="flex flex-wrap gap-4">
-            {summary?.currency_totals.map(c => (
-              <div key={c.currency} className="bg-slate-50 px-4 py-3 rounded-lg border border-slate-100 flex-1 min-w-[120px]">
-                <div className="text-xs text-slate-500 mb-1">{c.currency}</div>
-                <div className="text-xl font-bold text-green-700">{c.total.toFixed(2)}</div>
-              </div>
-            ))}
+            {summary?.currency_totals.map(c => {
+              const isSelected = selectedCurrencies.includes(c.currency);
+              return (
+                <div 
+                  key={c.currency} 
+                  onClick={() => handleCurrencyClick(c.currency)}
+                  className={`px-4 py-3 rounded-lg border flex-1 min-w-[120px] cursor-pointer transition-all ${
+                    isSelected 
+                      ? 'bg-green-50 border-green-400 ring-1 ring-green-400 shadow-sm' 
+                      : 'bg-slate-50 border-slate-100 hover:border-slate-300 hover:bg-slate-100'
+                  }`}
+                >
+                  <div className={`text-xs mb-1 ${isSelected ? 'text-green-600 font-semibold' : 'text-slate-500'}`}>{c.currency}</div>
+                  <div className={`text-xl font-bold ${isSelected ? 'text-green-700' : 'text-slate-800'}`}>{c.total.toFixed(2)}</div>
+                </div>
+              );
+            })}
             {!summary?.currency_totals.length && <div className="text-slate-400 text-sm">暂无数据 No data</div>}
           </div>
         </div>
@@ -307,7 +338,7 @@ export const Dashboard: React.FC = () => {
               </tr>
             </thead>
             <tbody className="text-sm">
-              {transactions.map(tx => (
+              {filteredTransactions.map(tx => (
                 <tr key={tx.id} className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors">
                   <td className="p-4 text-slate-600">{tx.transaction_date || '-'}</td>
                   <td className="p-4 font-medium text-slate-800">{tx.merchant || '-'}</td>
