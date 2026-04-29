@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 import hashlib
 import os
 import shutil
+import requests
 from datetime import datetime
 from pydantic import BaseModel
 from typing import Optional
@@ -165,22 +166,53 @@ async def upload_voucher(
                 detail="凭证已存在，请勿重复报销 (Duplicate Voucher)"
             )
             
-        # 6. 确定最终归档路径 (storage/YYYY/MM/filename)
+        # 6. 确定最终归档路径并上传 (支持本地和 Supabase Storage 云端)
         now = datetime.now()
-        year_month_dir = os.path.join(UPLOAD_DIR, str(now.year), f"{now.month:02d}")
-        os.makedirs(year_month_dir, exist_ok=True)
-        
-        # 为了避免同名文件覆盖，加上时间戳前缀
         final_filename = f"{now.strftime('%Y%m%d_%H%M%S')}_{file.filename}"
-        final_path = os.path.join(year_month_dir, final_filename)
         
-        # 移动文件到最终目录
-        shutil.move(temp_path, final_path)
+        supabase_url = os.getenv("SUPABASE_URL")
+        supabase_key = os.getenv("SUPABASE_SERVICE_KEY")
         
-        # 7. 调用 AI 进行 OCR
-        # 注意：这里我们使用的是相对路径，实际生产中可能需要处理为绝对路径或根据部署环境调整
-        ocr_data = perform_ocr_with_gemini(final_path, file.content_type)
+        is_cloud_storage = False
+        final_path = ""
         
+        if supabase_url and supabase_key:
+            bucket_name = "receipts"
+            object_name = f"{now.year}/{now.month:02d}/{final_filename}"
+            headers = {
+                "Authorization": f"Bearer {supabase_key}",
+                "apikey": supabase_key,
+                "Content-Type": file.content_type
+            }
+            
+            with open(temp_path, "rb") as f:
+                res = requests.post(
+                    f"{supabase_url}/storage/v1/object/{bucket_name}/{object_name}",
+                    headers=headers,
+                    data=f
+                )
+                
+            if res.status_code in (200, 201):
+                final_path = f"{supabase_url}/storage/v1/object/public/{bucket_name}/{object_name}"
+                is_cloud_storage = True
+                print(f"Successfully uploaded to Supabase Storage: {final_path}")
+            else:
+                print(f"Failed to upload to Supabase Storage: {res.text}. Falling back to local storage.")
+                
+        if not is_cloud_storage:
+            year_month_dir = os.path.join(UPLOAD_DIR, str(now.year), f"{now.month:02d}")
+            os.makedirs(year_month_dir, exist_ok=True)
+            final_path = os.path.join(year_month_dir, final_filename)
+            # 复制到最终目录
+            shutil.copy2(temp_path, final_path)
+        
+        # 7. 调用 AI 进行 OCR (使用本地的 temp_path 进行识别)
+        ocr_data = perform_ocr_with_gemini(temp_path, file.content_type)
+        
+        # 识别完成后清理临时文件
+        if os.path.exists(temp_path):
+            os.remove(temp_path)
+            
         # 8. 结合数据库里的映射规则，进一步优化商户和分类
         merchant_name = ocr_data.get("merchant")
         if merchant_name:

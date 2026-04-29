@@ -360,7 +360,7 @@ export const Dashboard: React.FC = () => {
                   <td className="p-4">
                     {tx.file_path ? (
                       <a 
-                        href={`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/${tx.file_path}`} 
+                        href={tx.file_path.startsWith('http') ? tx.file_path : `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/${tx.file_path}`} 
                         target="_blank" 
                         rel="noreferrer"
                         className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-800 bg-blue-50 px-2 py-1 rounded"
