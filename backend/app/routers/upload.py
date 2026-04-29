@@ -32,7 +32,7 @@ class OCRResult(BaseModel):
     category: Optional[str] = None
 
 # 模拟的免费次数统计 (实际项目中可以存入数据库)
-# Gemini 1.5 Flash 免费额度为 20 次，每日刷新
+# 免费额度为 20 次，每日刷新
 AI_FREE_TIER_LIMIT = 20
 current_usage = 0
 current_usage_date = datetime.now().date()
@@ -46,7 +46,7 @@ def calculate_md5(file_path: str) -> str:
     return hash_md5.hexdigest()
 
 def perform_ocr_with_gemini(file_path: str, mime_type: str) -> dict:
-    """使用 Gemini 1.5 Flash 进行 OCR 识别"""
+    """使用 Gemini 3.1 Flash Lite 进行 OCR 识别"""
     global current_usage, current_usage_date
     today = datetime.now().date()
     if current_usage_date != today:
@@ -82,7 +82,7 @@ def perform_ocr_with_gemini(file_path: str, mime_type: str) -> dict:
         # 4. 调用模型进行推理
         print("Starting inference...")
         response = client.models.generate_content(
-            model='gemini-2.5-flash',
+            model='gemini-3.1-flash-lite',
             contents=[
                 uploaded_file,
                 prompt
