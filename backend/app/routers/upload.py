@@ -46,7 +46,7 @@ def calculate_md5(file_path: str) -> str:
     return hash_md5.hexdigest()
 
 def perform_ocr_with_gemini(file_path: str, mime_type: str) -> dict:
-    """使用 Gemini 2.0 Flash Lite 进行 OCR 识别"""
+    """使用 Gemini 2.5 Flash 进行 OCR 识别"""
     global current_usage, current_usage_date
     today = datetime.now().date()
     if current_usage_date != today:
@@ -82,7 +82,7 @@ def perform_ocr_with_gemini(file_path: str, mime_type: str) -> dict:
         # 4. 调用模型进行推理
         print("Starting inference...")
         response = client.models.generate_content(
-            model='gemini-2.0-flash-lite',
+            model='gemini-2.5-flash',
             contents=[
                 uploaded_file,
                 prompt
