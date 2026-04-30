@@ -207,7 +207,13 @@ async def upload_voucher(
             shutil.copy2(temp_path, final_path)
         
         # 7. 调用 AI 进行 OCR (使用本地的 temp_path 进行识别)
-        ocr_data = perform_ocr_with_gemini(temp_path, file.content_type)
+        ocr_data = {}
+        ai_error = None
+        try:
+            ocr_data = perform_ocr_with_gemini(temp_path, file.content_type)
+        except Exception as ai_ex:
+            print(f"AI OCR Failed, but file saved: {str(ai_ex)}")
+            ai_error = str(ai_ex)
         
         # 识别完成后清理临时文件
         if os.path.exists(temp_path):
@@ -229,12 +235,12 @@ async def upload_voucher(
             current_usage_date = today
 
         return {
-            "status": "success",
-            "message": "File processed successfully",
+            "status": "success" if not ai_error else "warning",
+            "message": "File processed successfully" if not ai_error else f"AI 识别失败，请手动填写凭证信息 ({ai_error})",
             "file_path": final_path,
             "md5_hash": file_md5,
             "extracted_data": ocr_data,
-            "free_tier_remaining": AI_FREE_TIER_LIMIT - current_usage
+            "free_tier_remaining": max(0, AI_FREE_TIER_LIMIT - current_usage)
         }
         
     except HTTPException:

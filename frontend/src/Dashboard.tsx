@@ -12,6 +12,9 @@ interface Transaction {
   uploaded_by?: string;
   last_modified_by?: string;
   file_path?: string;
+  md5_hash?: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 interface Summary {
@@ -354,8 +357,14 @@ export const Dashboard: React.FC = () => {
                     {tx.amount ? `${tx.amount.toFixed(2)} ${tx.currency}` : '-'}
                   </td>
                   <td className="p-4">
-                    <div className="text-xs text-slate-700">上传: <span className="font-medium">{tx.uploaded_by || '-'}</span></div>
-                    <div className="text-[10px] text-slate-500 mt-0.5">修改: {tx.last_modified_by || tx.uploaded_by || '-'}</div>
+                    <div className="text-xs text-slate-700">
+                      上传: <span className="font-medium">{tx.uploaded_by || '-'}</span>
+                      {tx.created_at && <span className="text-[10px] text-slate-400 ml-1">({new Date(tx.created_at).toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })})</span>}
+                    </div>
+                    <div className="text-xs text-slate-500 mt-1">
+                      修改: <span className="font-medium">{tx.last_modified_by || tx.uploaded_by || '-'}</span>
+                      {tx.updated_at && <span className="text-[10px] text-slate-400 ml-1">({new Date(tx.updated_at).toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })})</span>}
+                    </div>
                   </td>
                   <td className="p-4">
                     {tx.file_path ? (

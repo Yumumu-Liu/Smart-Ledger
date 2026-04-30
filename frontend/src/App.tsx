@@ -64,7 +64,7 @@ function App() {
 
   useEffect(() => {
     if (isAuth) {
-      // eslint-disable-next-line react-hooks/exhaustive-deps
+      // eslint-disable-next-line
       fetchAiCredits();
     }
   }, [isAuth]);
@@ -164,6 +164,9 @@ function App() {
                 setAiCredits(data.free_tier_remaining)
               }
               
+      if (data.status === 'warning') {
+        setUploadError(data.message || 'AI 识别失败，请手动填写');
+      }
             } catch (err) {
       console.error("Upload error:", err)
       setUploadError(err instanceof Error ? err.message : '上传处理失败，请重试')
@@ -510,12 +513,24 @@ function App() {
                   <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1.5">金额 Amount</label>
                   <div className="relative">
                     <input 
-                      type="number" 
-                      step="0.01" 
+                      type="text" 
                       name="amount"
                       value={formData.amount}
                       onChange={handleInputChange}
-                      placeholder="0.00" 
+                      onBlur={(e) => {
+                        try {
+                          const val = e.target.value.replace(/[^0-9+\-*/.() ]/g, '');
+                          if (val) {
+                            const result = new Function('return ' + val)();
+                            if (!isNaN(result)) {
+                              setFormData(prev => ({ ...prev, amount: Number(result).toFixed(2) }));
+                            }
+                          }
+                        } catch {
+                          // ignore invalid math expressions
+                        }
+                      }}
+                      placeholder="例如: 10+20" 
                       className="w-full bg-slate-50 border border-slate-200 text-green-700 font-bold p-2.5 pl-8 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all" 
                     />
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold">$</span>
