@@ -12,7 +12,7 @@ from google.genai import types
 import json
 
 from app.database import get_db
-from app.models import Transaction, MerchantMapping
+from app.models import Transaction, MerchantMapping, ApiUsage
 from app.auth import get_current_user
 
 router = APIRouter(
@@ -34,8 +34,6 @@ class OCRResult(BaseModel):
 # 模拟的免费次数统计 (实际项目中可以存入数据库)
 # 免费额度为 20 次，每日刷新
 AI_FREE_TIER_LIMIT = 20
-current_usage = 0
-current_usage_date = datetime.now().date()
 
 def calculate_md5(file_path: str) -> str:
     """计算文件的 MD5 哈希值"""
@@ -45,14 +43,30 @@ def calculate_md5(file_path: str) -> str:
             hash_md5.update(chunk)
     return hash_md5.hexdigest()
 
-def perform_ocr_with_gemini(file_path: str, mime_type: str) -> dict:
-    """使用 Gemini 2.5 Flash 进行 OCR 识别"""
-    global current_usage, current_usage_date
+def get_current_usage(db: Session) -> int:
     today = datetime.now().date()
-    if current_usage_date != today:
-        current_usage = 0
-        current_usage_date = today
+    usage = db.query(ApiUsage).filter(ApiUsage.date == today).first()
+    if not usage:
+        usage = ApiUsage(date=today, count=0)
+        db.add(usage)
+        db.commit()
+        db.refresh(usage)
+    return usage.count
 
+def increment_usage(db: Session) -> int:
+    today = datetime.now().date()
+    usage = db.query(ApiUsage).filter(ApiUsage.date == today).first()
+    if not usage:
+        usage = ApiUsage(date=today, count=1)
+        db.add(usage)
+    else:
+        usage.count += 1
+    db.commit()
+    db.refresh(usage)
+    return usage.count
+
+def perform_ocr_with_gemini(file_path: str, mime_type: str, db: Session) -> dict:
+    """使用 Gemini 2.5 Flash 进行 OCR 识别"""
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key or api_key == "your_gemini_api_key_here":
         raise ValueError("Warning: GEMINI_API_KEY not found or invalid in environment variables. Please check Render environment variables.")
@@ -103,7 +117,7 @@ def perform_ocr_with_gemini(file_path: str, mime_type: str) -> dict:
         try:
             parsed_data = json.loads(result_text)
             # 记录使用次数
-            current_usage += 1
+            increment_usage(db)
             return parsed_data
         except json.JSONDecodeError as e:
             print(f"Failed to parse AI response as JSON: {result_text}")
@@ -114,13 +128,11 @@ def perform_ocr_with_gemini(file_path: str, mime_type: str) -> dict:
         raise ValueError(f"OCR Inference failed: {str(e)}")
 
 @router.get("/ai_credits")
-def get_ai_credits(current_user: str = Depends(get_current_user)):
-    global current_usage, current_usage_date
-    today = datetime.now().date()
-    if current_usage_date != today:
-        current_usage = 0
-        current_usage_date = today
-    
+def get_ai_credits(
+    current_user: str = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    current_usage = get_current_usage(db)
     return {"free_tier_remaining": max(0, AI_FREE_TIER_LIMIT - current_usage)}
 
 @router.post("/")
@@ -210,7 +222,7 @@ async def upload_voucher(
         ocr_data = {}
         ai_error = None
         try:
-            ocr_data = perform_ocr_with_gemini(temp_path, file.content_type)
+            ocr_data = perform_ocr_with_gemini(temp_path, file.content_type, db)
         except Exception as ai_ex:
             print(f"AI OCR Failed, but file saved: {str(ai_ex)}")
             ai_error = str(ai_ex)
@@ -228,11 +240,7 @@ async def upload_voucher(
             if mapping:
                 ocr_data["category"] = mapping.mapped_category
         
-        global current_usage, current_usage_date
-        today = datetime.now().date()
-        if current_usage_date != today:
-            current_usage = 0
-            current_usage_date = today
+        current_usage = get_current_usage(db)
 
         return {
             "status": "success" if not ai_error else "warning",

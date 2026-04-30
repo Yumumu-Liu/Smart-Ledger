@@ -43,6 +43,57 @@ function App() {
   // 当前标签页
   const [currentTab, setCurrentTab] = useState<'upload' | 'dashboard'>('upload')
 
+  // INACTIVITY TIMEOUT LOGIC
+  const INACTIVITY_LIMIT_MS = 10 * 60 * 1000; // 10 minutes
+
+  useEffect(() => {
+    if (!isAuth) return;
+
+    let inactivityTimer: number;
+
+    const resetTimer = () => {
+      window.clearTimeout(inactivityTimer);
+      inactivityTimer = window.setTimeout(() => {
+        handleLogout();
+        alert('由于长时间未操作，已自动退出登录。(Logged out due to inactivity)');
+      }, INACTIVITY_LIMIT_MS);
+      localStorage.setItem('lastActivity', Date.now().toString());
+    };
+
+    // Check on mount if we're already expired
+    const lastActivityStr = localStorage.getItem('lastActivity');
+    if (lastActivityStr) {
+      const lastActivity = parseInt(lastActivityStr, 10);
+      if (Date.now() - lastActivity > INACTIVITY_LIMIT_MS) {
+        handleLogout();
+        return;
+      }
+    }
+
+    // Attach listeners
+    const events = ['mousemove', 'keydown', 'mousedown', 'scroll', 'touchstart'];
+    
+    // Throttle the reset so we don't call it 60 times a second
+    let throttleTimer: number | null = null;
+    const throttledReset = () => {
+      if (throttleTimer) return;
+      throttleTimer = window.setTimeout(() => {
+        resetTimer();
+        throttleTimer = null;
+      }, 5000); // Only reset timer at most once every 5 seconds
+    };
+
+    resetTimer(); // initial start
+    
+    events.forEach(e => window.addEventListener(e, throttledReset));
+
+    return () => {
+      window.clearTimeout(inactivityTimer);
+      if (throttleTimer) window.clearTimeout(throttleTimer);
+      events.forEach(e => window.removeEventListener(e, throttledReset));
+    };
+  }, [isAuth]);
+
   const fetchAiCredits = async () => {
     try {
       const token = localStorage.getItem('token');
@@ -87,6 +138,7 @@ function App() {
       if (response.ok) {
         const data = await response.json()
         localStorage.setItem('token', data.access_token)
+        localStorage.setItem('lastActivity', Date.now().toString())
         setIsAuth(true)
       } else {
         setError('Incorrect password / 密码错误')
@@ -177,6 +229,7 @@ function App() {
 
   const handleLogout = () => {
     localStorage.removeItem('token')
+    localStorage.removeItem('lastActivity')
     setIsAuth(false)
   }
 

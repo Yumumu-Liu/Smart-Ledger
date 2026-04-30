@@ -34,3 +34,10 @@ class MerchantMapping(Base):
     mapped_category = Column(String)
     
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+class ApiUsage(Base):
+    __tablename__ = "api_usage"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    date = Column(Date, unique=True, index=True)
+    count = Column(Integer, default=0)
