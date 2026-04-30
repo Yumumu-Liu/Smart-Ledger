@@ -158,7 +158,12 @@ async def upload_voucher(
     # 2. 准备临时保存路径
     temp_dir = os.path.join(UPLOAD_DIR, "temp")
     os.makedirs(temp_dir, exist_ok=True)
-    temp_path = os.path.join(temp_dir, file.filename)
+    
+    import uuid
+    _, ext = os.path.splitext(file.filename)
+    # 使用 UUID 生成安全的纯英文临时文件名，彻底避免 AI SDK 或打印时的 ASCII 编码报错
+    safe_temp_filename = f"temp_{uuid.uuid4().hex}{ext}"
+    temp_path = os.path.join(temp_dir, safe_temp_filename)
     
     try:
         # 3. 保存临时文件
@@ -180,7 +185,10 @@ async def upload_voucher(
             
         # 6. 确定最终归档路径并上传 (支持本地和 Supabase Storage 云端)
         now = datetime.now()
-        final_filename = f"{now.strftime('%Y%m%d_%H%M%S')}_{file.filename}"
+        import urllib.parse
+        # 将文件名中的特殊字符（如中文）转码，确保后续云端存储、API 调用和日志打印 100% 安全
+        safe_original_name = urllib.parse.quote(file.filename)
+        final_filename = f"{now.strftime('%Y%m%d_%H%M%S')}_{safe_original_name}"
         
         supabase_url = os.getenv("SUPABASE_URL")
         supabase_key = os.getenv("SUPABASE_SERVICE_KEY")
