@@ -260,7 +260,9 @@ export const Dashboard: React.FC = () => {
                   }`}
                 >
                   <div className={`text-xs mb-1 ${isSelected ? 'text-green-600 font-semibold' : 'text-slate-500'}`}>{c.currency}</div>
-                  <div className={`text-xl font-bold ${isSelected ? 'text-green-700' : 'text-slate-800'}`}>{c.total.toFixed(2)}</div>
+                  <div className={`text-xl font-bold ${isSelected ? 'text-green-700' : 'text-slate-800'}`}>
+                    {c.total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </div>
                 </div>
               );
             })}
@@ -354,7 +356,7 @@ export const Dashboard: React.FC = () => {
                     {tx.description || '-'}
                   </td>
                   <td className="p-4 text-right font-bold text-slate-800">
-                    {tx.amount ? `${tx.amount.toFixed(2)} ${tx.currency}` : '-'}
+                    {tx.amount ? `${tx.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${tx.currency}` : '-'}
                   </td>
                   <td className="p-4">
                     <div className="text-xs text-slate-700">
@@ -450,8 +452,9 @@ export const Dashboard: React.FC = () => {
                     <option value="software">软件订阅 Software & Subscriptions</option>
                     <option value="travel">差旅 Travel</option>
                     <option value="decoration">装修 Decoration</option>
-                    <option value="materials">物料 Materials</option>
-                    <option value="other">其他 Other</option>
+                  <option value="materials">物料 Materials</option>
+                  <option value="administrative">行政 Administrative</option>
+                  <option value="other">其他 Other</option>
                   </select>
                 </div>
                 <div>

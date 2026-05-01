@@ -106,9 +106,36 @@ def delete_transaction(tx_id: int, db: Session = Depends(get_db)):
     if not db_tx:
         raise HTTPException(status_code=404, detail="Transaction not found")
         
+    # Attempt to delete file from Supabase Storage if applicable
+    if db_tx.file_path and "supabase.co/storage/v1/object/public/" in db_tx.file_path:
+        import re
+        import requests
+        match = re.search(r'/object/public/([^/]+)/(.*)', db_tx.file_path)
+        if match:
+            bucket_name = match.group(1)
+            object_path = match.group(2)
+            
+            supabase_url = os.getenv("SUPABASE_URL")
+            supabase_key = os.getenv("SUPABASE_SERVICE_KEY")
+            
+            if supabase_url and supabase_key:
+                headers = {
+                    "Authorization": f"Bearer {supabase_key}",
+                    "apikey": supabase_key,
+                }
+                delete_url = f"{supabase_url}/storage/v1/object/{bucket_name}/{object_path}"
+                try:
+                    res = requests.delete(delete_url, headers=headers)
+                    if res.status_code in (200, 204):
+                        print(f"Successfully deleted {object_path} from Supabase.")
+                    else:
+                        print(f"Failed to delete {object_path} from Supabase: {res.text}")
+                except Exception as e:
+                    print(f"Error deleting file from Supabase: {str(e)}")
+
     db.delete(db_tx)
     db.commit()
-    return {"status": "success", "message": "Transaction deleted"}
+    return {"status": "success", "message": "Transaction and associated file deleted"}
 
 @router.get("/summary")
 def get_summary(

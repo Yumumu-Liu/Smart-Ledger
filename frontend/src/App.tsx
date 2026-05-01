@@ -626,6 +626,7 @@ function App() {
                     <option value="travel">差旅 Travel</option>
                     <option value="decoration">装修 Decoration</option>
                     <option value="materials">物料 Materials</option>
+                    <option value="administrative">行政 Administrative</option>
                     <option value="other">其他 Other</option>
                   </select>
                   {formData.category === 'other' && (
