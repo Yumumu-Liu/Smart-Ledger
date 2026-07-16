@@ -75,10 +75,10 @@ def perform_ocr_with_gemini(file_path: str, mime_type: str, db: Session) -> dict
         # 1. 初始化客户端
         client = genai.Client(api_key=api_key)
         
-        # 2. 上传文件到 Gemini
-        print(f"Uploading {file_path} to Gemini...")
-        uploaded_file = client.files.upload(file=file_path)
-        
+        # 2. 读取文件字节，直接以 inline 方式传输（绕过 File API，避免 AQ. 格式 key 的 401 报错）
+        with open(file_path, "rb") as f:
+            file_bytes = f.read()
+
         # 3. 构造提示词
         prompt = """
         You are an expert financial accountant. Extract the following information from this receipt/invoice.
@@ -98,7 +98,7 @@ def perform_ocr_with_gemini(file_path: str, mime_type: str, db: Session) -> dict
         response = client.models.generate_content(
             model='gemini-2.5-flash',
             contents=[
-                uploaded_file,
+                types.Part.from_bytes(data=file_bytes, mime_type=mime_type),
                 prompt
             ],
             config=types.GenerateContentConfig(
@@ -107,10 +107,7 @@ def perform_ocr_with_gemini(file_path: str, mime_type: str, db: Session) -> dict
             )
         )
         
-        # 5. 清理远程文件
-        client.files.delete(name=uploaded_file.name)
-        
-        # 6. 解析结果
+        # 5. 解析结果
         result_text = response.text
         print(f"Raw AI Response: {result_text}")
         
